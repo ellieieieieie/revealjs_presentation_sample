@@ -64,15 +64,10 @@ glimpse(eurostat_raw)
 ```{r}
 #| label: read-war-graphics
 
-war_dep <- read_xlsx(
-  "data/UkraineRussia_War_Graphics_.xlsx",
-  sheet = "% dependency on Russian Gas - V"
-)
-
-war_support <- read_xlsx(
-  "data/UkraineRussia_War_Graphics_.xlsx",
-  sheet = "Who Supports Russia"
-)
+war_dep <- read_xlsx("data/Ukraine-Russia_War_Graphics.xlsx",
+                     sheet = "% dependency on Russian Gas")
+war_support <- read_xlsx("data/Ukraine-Russia_War_Graphics.xlsx",
+                         sheet = "Who Supports Russia")
 ```
 
 # Step 2 — Clean Eurostat Data
