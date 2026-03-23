@@ -1,0 +1,102 @@
+/* Custom CSS for Revealjs presentation */
+
+/* Dark theme refinements */
+.reveal {
+  font-family: "Source Sans Pro", Helvetica, sans-serif;
+}
+
+.reveal .slide-background {
+  background-color: #0d1117;
+}
+
+/* Section headers */
+.reveal h1 {
+  color: #58a6ff;
+  font-weight: 700;
+  text-shadow: 0 0 20px rgba(88, 166, 255, 0.15);
+}
+
+.reveal h2 {
+  color: #c9d1d9;
+  border-bottom: 2px solid #30363d;
+  padding-bottom: 0.3em;
+}
+
+/* Callout styling */
+.reveal .callout {
+  border-radius: 6px;
+  border-left-width: 4px;
+}
+
+.reveal .callout-note {
+  background-color: rgba(88, 166, 255, 0.08);
+  border-left-color: #58a6ff;
+}
+
+/* Table styling */
+.reveal table {
+  font-size: 0.7em;
+  border-collapse: collapse;
+}
+
+.reveal table th {
+  background-color: #21262d;
+  color: #c9d1d9;
+  border-bottom: 2px solid #58a6ff;
+  padding: 8px 12px;
+}
+
+.reveal table td {
+  border-bottom: 1px solid #30363d;
+  padding: 6px 12px;
+  color: #c9d1d9;
+}
+
+.reveal table tr:nth-child(even) td {
+  background-color: rgba(255, 255, 255, 0.02);
+}
+
+/* Smaller text class */
+.reveal .smaller {
+  font-size: 0.85em;
+}
+
+/* Columns spacing */
+.reveal .columns {
+  gap: 2em;
+}
+
+/* Code block refinement */
+.reveal pre {
+  background-color: #161b22;
+  border: 1px solid #30363d;
+  border-radius: 6px;
+}
+
+.reveal code {
+  color: #79c0ff;
+}
+
+/* List styling */
+.reveal ul li,
+.reveal ol li {
+  margin-bottom: 0.4em;
+  color: #c9d1d9;
+}
+
+/* Caption styling */
+.reveal .slide figure figcaption {
+  color: #8b949e;
+  font-style: italic;
+  font-size: 0.8em;
+}
+
+/* Legend emoji approximation in text */
+.reveal .legend-inline {
+  display: inline-block;
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  margin-right: 4px;
+  vertical-align: middle;
+}
