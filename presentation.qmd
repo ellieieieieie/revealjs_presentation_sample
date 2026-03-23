@@ -55,7 +55,7 @@ library(scales)
 
 :::: columns
 ::: {.column width="55%"}
-![Original visualization by *Information is Beautiful*](imgs/original_visualization.png){.border-img fig-alt="Bubble chart showing dependency on Russian gas exports" width="100%"}
+![Original visualization by *Information is Beautiful*](imgs/original_visualization.png){.border-img fig-alt="Bubble chart showing dependency on Russian gas exports" width="40%"}
 :::
 ::: {.column width="45%"}
 
