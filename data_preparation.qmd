@@ -1,0 +1,288 @@
+---
+title: "Data Engineering Workflow"
+subtitle: "From Raw Data to Visualization-Ready Dataset"
+author:
+  - name: Kathy Mok Kai Ting (2402530)
+  - name: Siew Yong Ying (2202450)
+  - name: Ellie Josepha Lim Shi Ern (2401756)
+  - name: Leow Yi Hao Ignatius (2501538)
+  - name: Poh Yang Jie Michael (2500624)
+date: 2026-03-23
+date-format: "dddd MMM DD, YYYY"
+execute:
+  echo: true
+  warning: false
+  message: false
+
+format: 
+  html:
+    toc: true
+    toc-location: left
+    number-sections: true
+    embed-resources: true
+    theme: cosmo
+    title-block-banner: true
+    code-fold: true
+    code-summary: "Show/Hide code"
+---
+# Data Sources
+
+This project uses two primary data sources:
+
+1.  **Eurostat `nrg_ti_gas`** — Annual natural gas trade data by partner country, providing import volumes in million cubic metres (MCM). Downloaded from the [Eurostat Data Browser](https://ec.europa.eu/eurostat/databrowser/view/nrg_ti_gas/default/table?lang=en).
+
+2.  **Ukraine-Russia War Graphics Dataset** — A curated Google Sheet by *Information is Beautiful* containing country-level data on gas dependency percentages, share of Russian exports, and geopolitical stance. Available at [informationisbeautiful.net](https://informationisbeautiful.net/visualizations/ukraine-russia-war-infographics-data-visuals/).
+
+# Step 1 — Load Packages and Read Raw Data
+
+```{r}
+#| label: load-packages
+#| message: false
+#| warning: false
+
+library(readr)
+library(readxl)
+library(dplyr)
+library(tidyr)
+library(stringr)
+library(ggplot2)
+library(ggrepel)
+```
+
+```{r}
+#| label: read-eurostat
+#| message: false
+
+eurostat_raw <- read_csv(
+  "data/nrg_ti_gas__custom_20384524_linear.csv",
+  show_col_types = FALSE
+)
+
+glimpse(eurostat_raw)
+```
+
+```{r}
+#| label: read-war-graphics
+
+war_dep <- read_xlsx(
+  "data/UkraineRussia_War_Graphics_.xlsx",
+  sheet = "% dependency on Russian Gas - V"
+)
+
+war_support <- read_xlsx(
+  "data/UkraineRussia_War_Graphics_.xlsx",
+  sheet = "Who Supports Russia"
+)
+```
+
+# Step 2 — Clean Eurostat Data
+
+The Eurostat dataset contains annual natural gas imports from Russia and total imports, reported in million cubic metres (MCM). We filter to **2021** as the reference year (the last full year before the invasion) and separate Russian imports from total imports.
+
+```{r}
+#| label: clean-eurostat
+
+# Remove aggregate regions (EU, Euro area)
+aggregate_geos <- c(
+  "European Union - 27 countries (from 2020)",
+  "Euro area – 20 countries (2023-2025)",
+  "Euro area – 21 countries (from 2026)"
+)
+
+eurostat_clean <- eurostat_raw |>
+  filter(
+    TIME_PERIOD == 2021,
+    !(geo %in% aggregate_geos)
+  ) |>
+  select(geo, partner, OBS_VALUE) |>
+  pivot_wider(
+    names_from = partner,
+    values_from = OBS_VALUE,
+    values_fill = 0
+  )
+
+# Rename columns for clarity
+names(eurostat_clean) <- c("country", "imports_russia_mcm", "imports_total_mcm")
+
+# Convert MCM to BCM (billion cubic metres)
+eurostat_clean <- eurostat_clean |>
+  mutate(
+    imports_russia_bcm = imports_russia_mcm / 1000,
+    imports_total_bcm  = imports_total_mcm / 1000
+  )
+
+head(eurostat_clean, 10)
+```
+
+# Step 3 — Clean War Graphics Data
+
+The War Graphics sheet provides the dependency percentage and share of Russian exports per country. We standardise column names and handle the dual LOW/HIGH estimate entries for Hungary, Austria, and Romania.
+
+```{r}
+#| label: clean-war-dep
+
+# Rename columns from the "% dependency on Russian Gas - V" sheet
+war_dep_clean <- war_dep |>
+  select(
+    country    = 1,
+    note       = 2,
+    dep_pct    = 3,
+    export_pct = 4
+  ) |>
+  filter(!is.na(country)) |>
+  mutate(
+    dep_pct    = as.numeric(dep_pct),
+    export_pct = as.numeric(export_pct)
+  )
+
+# --- Improvement 3: Consolidate uncertainty ranges ---
+# For countries with dual estimates (upper/lower), compute a single midpoint
+# and flag them as uncertain entries
+dual_entries <- war_dep_clean |>
+  filter(str_detect(note, "estimate", negate = FALSE)) |>
+  group_by(country) |>
+  summarise(
+    dep_pct    = mean(dep_pct, na.rm = TRUE),
+    export_pct = first(export_pct),
+    is_estimate = TRUE,
+    .groups = "drop"
+  )
+
+single_entries <- war_dep_clean |>
+  filter(is.na(note) | !str_detect(note, "estimate")) |>
+  mutate(is_estimate = FALSE) |>
+  select(country, dep_pct, export_pct, is_estimate)
+
+war_dep_final <- bind_rows(single_entries, dual_entries)
+
+head(war_dep_final, 10)
+```
+
+# Step 4 — Clean Geopolitical Alignment Data
+
+We simplify the five-level geopolitical response into three categories for the colour aesthetic.
+
+```{r}
+#| label: clean-support
+
+war_support_clean <- war_support |>
+  select(country = 1, response = 2) |>
+  filter(!is.na(country), !is.na(response), response != "") |>
+  mutate(
+    geopolitical_alignment = case_when(
+      response %in% c("PRO RUSSIA", "LEANS RUSSIA") ~ "Pro-Russia / Leaning",
+      response %in% c("CONDEMNS RUSSIA")             ~ "Opposes Russia",
+      response %in% c("NEUTRAL", "UNHAPPY")           ~ "Neutral / Non-aligned",
+      TRUE                                             ~ NA_character_
+    )
+  ) |>
+  filter(!is.na(geopolitical_alignment)) |>
+  select(country, geopolitical_alignment)
+
+# Standardise country names to match across datasets
+war_support_clean <- war_support_clean |>
+  mutate(country = case_when(
+    country == "Bosnia & Herzegovina" ~ "Bosnia",
+    country == "South Korea"          ~ "South Korea",
+    TRUE                              ~ country
+  ))
+
+head(war_support_clean, 10)
+```
+
+# Step 5 — Merge Datasets
+
+We merge the three cleaned datasets using `left_join()` on country name.
+
+```{r}
+#| label: merge-data
+
+# Start from the war dependency data (most complete for our viz)
+viz_data <- war_dep_final |>
+  left_join(
+    eurostat_clean |> select(country, imports_russia_bcm),
+    by = "country"
+  ) |>
+  left_join(
+    war_support_clean,
+    by = "country"
+  )
+
+# Standardise Eurostat names to match war graphics names
+# Some countries need manual mapping
+name_map <- c(
+  "Türkiye"          = "Turkey",
+  "Czechia"          = "Czechia",
+  "North Macedonia"  = "North Macedonia",
+  "Bosnia and Herzegovina" = "Bosnia"
+)
+
+# Re-do the Eurostat join with name harmonisation
+eurostat_renamed <- eurostat_clean |>
+  mutate(country = ifelse(country %in% names(name_map),
+                           name_map[country], country))
+
+viz_data <- war_dep_final |>
+  left_join(
+    eurostat_renamed |> select(country, imports_russia_bcm),
+    by = "country"
+  ) |>
+  left_join(
+    war_support_clean,
+    by = "country"
+  )
+
+# Fill missing alignment with "Unknown"
+viz_data <- viz_data |>
+  mutate(
+    geopolitical_alignment = replace_na(geopolitical_alignment, "Unknown"),
+    # Convert export_pct from proportion to percentage for display
+    export_pct_display = export_pct * 100,
+    # Convert dep_pct from proportion to percentage for display
+    dep_pct_display = dep_pct * 100
+  )
+
+# Remove rows with no dependency data
+viz_data <- viz_data |>
+  filter(!is.na(dep_pct))
+
+glimpse(viz_data)
+```
+
+# Step 6 — Final Visualization-Ready Dataset
+
+```{r}
+#| label: final-dataset
+
+# Make geopolitical_alignment an ordered factor for consistent legend ordering
+viz_data <- viz_data |>
+  mutate(
+    geopolitical_alignment = factor(
+      geopolitical_alignment,
+      levels = c("Opposes Russia", "Neutral / Non-aligned",
+                 "Pro-Russia / Leaning", "Unknown")
+    )
+  )
+
+# Display final dataset
+viz_data |>
+  arrange(desc(dep_pct)) |>
+  select(country, dep_pct_display, export_pct_display,
+         imports_russia_bcm, geopolitical_alignment, is_estimate) |>
+  head(20)
+```
+
+```{r}
+#| label: save-viz-data
+
+write_csv(viz_data, "data/viz_ready.csv")
+```
+
+The visualization-ready dataset contains **`r nrow(viz_data)` countries** with the following variables:
+
+- `country` — Country name
+- `dep_pct` / `dep_pct_display` — Dependency on Russian gas (proportion / percentage)
+- `export_pct` / `export_pct_display` — Share of Russia's total gas exports (proportion / percentage)
+- `imports_russia_bcm` — Absolute gas imports from Russia in billion cubic metres (2021)
+- `geopolitical_alignment` — Categorical: Opposes Russia, Neutral / Non-aligned, Pro-Russia / Leaning
+- `is_estimate` — Logical flag for countries with consolidated uncertainty ranges
