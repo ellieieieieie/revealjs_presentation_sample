@@ -271,7 +271,7 @@ eurostat_raw <- read_csv("data/nrg_ti_gas__custom_20384524_linear.csv",
                          show_col_types = FALSE)
 
 war_dep <- read_xlsx("data/Ukraine-Russia_War_Graphics.xlsx",
-                     sheet = "% dependency on Russian Gas")
+                     sheet = "% dependency on Russian Gas (en")
 war_support <- read_xlsx("data/Ukraine-Russia_War_Graphics.xlsx",
                          sheet = "Who Supports Russia")
 ```
