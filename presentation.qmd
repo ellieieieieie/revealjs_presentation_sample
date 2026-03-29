@@ -271,7 +271,7 @@ eurostat_raw <- read_csv("data/nrg_ti_gas__custom_20384524_linear.csv",
                          show_col_types = FALSE)
 
 war_dep <- read_xlsx("data/Ukraine-Russia_War_Graphics.xlsx",
-                     sheet = "% dependency on Russian Gas (en")
+                     sheet = "% dependency on Russian Gas - V")
 war_support <- read_xlsx("data/Ukraine-Russia_War_Graphics.xlsx",
                          sheet = "Who Supports Russia")
 ```
@@ -479,6 +479,8 @@ This preserves the acknowledgment of data uncertainty while reducing visual clut
 #| label: main-viz
 #| echo: true
 #| eval: true
+#| code-fold: true
+#| code-summary: "Show code"
 #| fig-width: 13
 #| fig-height: 7.5
 #| fig-dpi: 150
@@ -573,6 +575,8 @@ ggplot(viz_plot_data,
 #| label: full-bar-chart
 #| echo: true
 #| eval: true
+#| code-fold: true
+#| code-summary: "Show code"
 #| fig-width: 13
 #| fig-height: 7.5
 #| fig-dpi: 150
