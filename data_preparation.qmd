@@ -65,7 +65,7 @@ glimpse(eurostat_raw)
 #| label: read-war-graphics
 
 war_dep <- read_xlsx("data/Ukraine-Russia_War_Graphics.xlsx",
-                     sheet = "% dependency on Russian Gas")
+                     sheet = "% dependency on Russian Gas - V")
 war_support <- read_xlsx("data/Ukraine-Russia_War_Graphics.xlsx",
                          sheet = "Who Supports Russia")
 ```
